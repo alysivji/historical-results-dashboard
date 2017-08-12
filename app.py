@@ -3,6 +3,7 @@ import os
 
 # dash libs
 import dash
+from dash.dependencies import Input, Output
 import dash_core_components as dcc
 import dash_html_components as html
 
@@ -14,6 +15,9 @@ from sqlalchemy import create_engine
 conn = create_engine(os.environ['DB_URI'])
 
 
+##########
+# DB Query
+##########
 def fetch_data(q):
     result = pd.read_sql(
         sql=q,
@@ -26,7 +30,8 @@ def get_divisions():
     '''Returns the list of divisions that are stored in the database'''
 
     division_query = (
-        f'''SELECT DISTINCT division
+        f'''
+        SELECT DISTINCT division
         FROM results
         '''
     )
@@ -36,11 +41,11 @@ def get_divisions():
 
 
 def get_seasons(division):
-    '''Returns the years that are stored in the database
-    '''
+    '''Returns the seasons of the datbase store'''
 
     seasons_query = (
-        f'''SELECT DISTINCT season
+        f'''
+        SELECT DISTINCT season
         FROM results
         WHERE division='{division}'
         '''
@@ -49,6 +54,42 @@ def get_seasons(division):
     seasons = list(seasons['season'].sort_values(ascending=False))
     return seasons
 
+
+def get_teams(division, season):
+    '''Returns all teams playing in the division in the season'''
+
+    teams_query = (
+        f'''
+        SELECT DISTINCT team
+        FROM results
+        WHERE division='{division}'
+        AND season='{season}'
+        '''
+    )
+    teams = fetch_data(teams_query)
+    teams = list(teams['team'].sort_values(ascending=True))
+    return teams
+
+
+def get_match_results(division, season, team):
+    '''Returns match results for the selected prompts'''
+
+    results_query = (
+        f'''
+        SELECT date, team, opponent, goals, goals_opp, result, points
+        FROM results
+        WHERE division='{division}'
+        AND season='{season}'
+        AND team='{team}'
+        '''
+    )
+    match_results = fetch_data(results_query)
+    return match_results
+
+
+##################
+# Dashboard Layout
+##################
 
 def generate_table(dataframe, max_rows=10):
     return html.Table(
@@ -64,22 +105,84 @@ def generate_table(dataframe, max_rows=10):
 
 # Set up Dashboard and create layout
 app = dash.Dash()
-app.layout = html.Div(children=[
-    html.H1(children='US Agriculture Exports (2011)'),
-
-    dcc.Dropdown(
-        options=[
-            {'label': division, 'value': division}
-            for division in get_divisions()
-        ]
-    )
-])
-
 app.css.append_css({
     "external_url": "https://codepen.io/chriddyp/pen/bWLwgP.css"
 })
 
+app.layout = html.Div(children=[
+    # Page Header
+    html.H1(children='Soccer Results Viewer'),
 
+    # Select Division Dropdown
+    dcc.Dropdown(
+        id='division-selector',
+        options=[
+            {'label': division, 'value': division}
+            for division in get_divisions()
+        ]
+    ),
+
+    # Select Season Dropdown
+    dcc.Dropdown(id='season-selector'),
+
+    # Select Team Dropdown
+    dcc.Dropdown(id='team-selector'),
+
+    # Match Results Table
+    html.Table(id='match-results')
+])
+
+
+#############
+# Interaction
+#############
+
+# Load Seasons in Dropdown
+@app.callback(
+    Output(component_id='season-selector', component_property='options'),
+    [
+        Input(component_id='division-selector', component_property='value')
+    ]
+)
+def populate_season_selector(division):
+    seasons = get_seasons(division)
+    return [
+        {'label': season, 'value': season}
+        for season in seasons
+    ]
+
+
+# Load Teams into dropdown
+@app.callback(
+    Output(component_id='team-selector', component_property='options'),
+    [
+        Input(component_id='division-selector', component_property='value'),
+        Input(component_id='season-selector', component_property='value')
+    ]
+)
+def populate_team_selector(division, season):
+    teams = get_teams(division, season)
+    return [
+        {'label': team, 'value': team}
+        for team in teams
+    ]
+
+
+# Load Match results
+@app.callback(
+    Output(component_id='match-results', component_property='children'),
+    [
+        Input(component_id='division-selector', component_property='value'),
+        Input(component_id='season-selector', component_property='value'),
+        Input(component_id='team-selector', component_property='value')
+    ]
+)
+def populate_match_results(division, season, team):
+    results = get_match_results(division, season, team)
+    return generate_table(results, max_rows=50)
+
+
+# start Flask server
 if __name__ == '__main__':
     app.run_server(
         debug=True,
