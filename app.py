@@ -109,27 +109,52 @@ app.css.append_css({
     "external_url": "https://codepen.io/chriddyp/pen/bWLwgP.css"
 })
 
-app.layout = html.Div(children=[
+app.layout = html.Div([
+
     # Page Header
-    html.H1(children='Soccer Results Viewer'),
+    html.Div([
+        # Page Header
+        html.H1('Soccer Results Viewer')
+    ]),
 
-    # Select Division Dropdown
-    dcc.Dropdown(
-        id='division-selector',
-        options=[
-            {'label': division, 'value': division}
-            for division in get_divisions()
-        ]
-    ),
+    # Dropdown Grid
+    html.Div([
+        html.Div([
+            # Select Division Dropdown
+            html.Div([
+                html.Div('Select Division', className='three columns'),
+                html.Div(
+                    dcc.Dropdown(
+                        id='division-selector',
+                        options=[{'label': division, 'value': division}
+                                 for division in get_divisions()]
+                    ), className='nine columns'
+                )
+            ]),
 
-    # Select Season Dropdown
-    dcc.Dropdown(id='season-selector'),
+            # Select Season Dropdown
+            html.Div([
+                html.Div('Select Season', className='three columns'),
+                html.Div(dcc.Dropdown(id='season-selector'),
+                         className='nine columns')
+            ]),
 
-    # Select Team Dropdown
-    dcc.Dropdown(id='team-selector'),
+            # Select Team Dropdown
+            html.Div([
+                html.Div('Select Team', className='three columns'),
+                html.Div(dcc.Dropdown(id='team-selector'),
+                         className='nine columns')
+            ]),
+        ], className='eight columns'),
+
+        # Empty
+        html.Div(className='four columns'),
+    ]),
 
     # Match Results Table
-    html.Table(id='match-results')
+    html.Div(
+        html.Table(id='match-results'),
+    ),
 ])
 
 
