@@ -15,9 +15,10 @@ from sqlalchemy import create_engine
 conn = create_engine(os.environ['DB_URI'])
 
 
-##########
-# DB Query
-##########
+###############
+# Data Analysis
+###############
+
 def fetch_data(q):
     result = pd.read_sql(
         sql=q,
@@ -103,6 +104,16 @@ def generate_table(dataframe, max_rows=10):
     )
 
 
+def onLoad_division_options():
+    '''Actions to perform upon initial page load'''
+    
+    division_options = (
+        [{'label': division, 'value': division}
+         for division in get_divisions()]
+    )
+    return division_options
+
+
 # Set up Dashboard and create layout
 app = dash.Dash()
 app.css.append_css({
@@ -123,13 +134,9 @@ app.layout = html.Div([
             # Select Division Dropdown
             html.Div([
                 html.Div('Select Division', className='three columns'),
-                html.Div(
-                    dcc.Dropdown(
-                        id='division-selector',
-                        options=[{'label': division, 'value': division}
-                                 for division in get_divisions()]
-                    ), className='nine columns'
-                )
+                html.Div(dcc.Dropdown(id='division-selector',
+                                      options=onLoad_division_options()),
+                         className='nine columns')
             ]),
 
             # Select Season Dropdown
@@ -145,15 +152,16 @@ app.layout = html.Div([
                 html.Div(dcc.Dropdown(id='team-selector'),
                          className='nine columns')
             ]),
-        ], className='eight columns'),
+        ], className='six columns'),
 
         # Empty
-        html.Div(className='four columns'),
-    ]),
+        html.Div(className='six columns'),
+    ], className='twleve columns'),
 
     # Match Results Table
     html.Div(
         html.Table(id='match-results'),
+        className='twleve columns'
     ),
 ])
 
