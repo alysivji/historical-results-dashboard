@@ -6,6 +6,8 @@ import dash
 from dash.dependencies import Input, Output
 import dash_core_components as dcc
 import dash_html_components as html
+import plotly.figure_factory as ff
+import plotly.graph_objs as go
 
 # pydata stack
 import pandas as pd
@@ -82,10 +84,26 @@ def get_match_results(division, season, team):
         WHERE division='{division}'
         AND season='{season}'
         AND team='{team}'
+        ORDER BY date ASC
         '''
     )
     match_results = fetch_data(results_query)
     return match_results
+
+
+def calculate_season_summary(results):
+    record = results.groupby(by=['result'])['team'].count()
+    summary = pd.DataFrame(
+        data={
+            'W': record['W'],
+            'L': record['L'],
+            'D': record['D'],
+            'Points': results['points'].sum()
+        },
+        columns=['W', 'D', 'L', 'Points'],
+        index=results['team'].unique(),
+    )
+    return summary
 
 
 ##################
@@ -124,7 +142,6 @@ app.layout = html.Div([
 
     # Page Header
     html.Div([
-        # Page Header
         html.H1('Soccer Results Viewer')
     ]),
 
@@ -158,11 +175,26 @@ app.layout = html.Div([
         html.Div(className='six columns'),
     ], className='twleve columns'),
 
-    # Match Results Table
-    html.Div(
-        html.Table(id='match-results'),
-        className='twleve columns'
-    ),
+    # Match Results Grid
+    html.Div([
+
+        # Match Results Table
+        html.Div(
+            html.Table(id='match-results'),
+            className='six columns'
+        ),
+
+        # Season Summary Table and Graph
+        html.Div([
+            # summary table
+            dcc.Graph(id='season-summary'),
+
+            # graph
+            dcc.Graph(id='season-graph')
+            # style={},
+
+        ], className='six columns')
+    ]),
 ])
 
 
@@ -210,9 +242,29 @@ def populate_team_selector(division, season):
         Input(component_id='team-selector', component_property='value')
     ]
 )
-def populate_match_results(division, season, team):
+def load_match_results(division, season, team):
     results = get_match_results(division, season, team)
     return generate_table(results, max_rows=50)
+
+
+# Update Season Summary Table
+@app.callback(
+    Output(component_id='season-summary', component_property='figure'),
+    [
+        Input(component_id='division-selector', component_property='value'),
+        Input(component_id='season-selector', component_property='value'),
+        Input(component_id='team-selector', component_property='value')
+    ]
+)
+def load_season_summary(division, season, team):
+    results = get_match_results(division, season, team)
+
+    table = []
+    if len(results) > 0:
+        summary = calculate_season_summary(results)
+        table = ff.create_table(summary)
+
+    return table
 
 
 # start Flask server
