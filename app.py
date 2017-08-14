@@ -106,6 +106,23 @@ def calculate_season_summary(results):
     return summary
 
 
+def draw_season_points_graph(results):
+    dates = results['date']
+    points = results['points'].cumsum()
+
+    figure = go.Figure(
+        data=[
+            go.Scatter(x=dates, y=points, mode='lines+markers')
+        ],
+        layout=go.Layout(
+            title='Points Accumulation',
+            showlegend=False
+        )
+    )
+
+    return figure
+
+
 ##################
 # Dashboard Layout
 ##################
@@ -265,6 +282,25 @@ def load_season_summary(division, season, team):
         table = ff.create_table(summary)
 
     return table
+
+
+# Update Season Point Graph
+@app.callback(
+    Output(component_id='season-graph', component_property='figure'),
+    [
+        Input(component_id='division-selector', component_property='value'),
+        Input(component_id='season-selector', component_property='value'),
+        Input(component_id='team-selector', component_property='value')
+    ]
+)
+def load_season_points_graph(division, season, team):
+    results = get_match_results(division, season, team)
+
+    figure = []
+    if len(results) > 0:
+        figure = draw_season_points_graph(results)
+
+    return figure
 
 
 # start Flask server
