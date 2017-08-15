@@ -17,9 +17,9 @@ from sqlalchemy import create_engine
 conn = create_engine(os.environ['DB_URI'])
 
 
-###############
-# Data Analysis
-###############
+###########################
+# Data Manipulation / Model
+###########################
 
 def fetch_data(q):
     result = pd.read_sql(
@@ -123,11 +123,13 @@ def draw_season_points_graph(results):
     return figure
 
 
-##################
-# Dashboard Layout
-##################
+#########################
+# Dashboard Layout / View
+#########################
 
 def generate_table(dataframe, max_rows=10):
+    '''Given dataframe, return template generated using Dash components
+    '''
     return html.Table(
         # Header
         [html.Tr([html.Th(col) for col in dataframe.columns])] +
@@ -141,7 +143,7 @@ def generate_table(dataframe, max_rows=10):
 
 def onLoad_division_options():
     '''Actions to perform upon initial page load'''
-    
+
     division_options = (
         [{'label': division, 'value': division}
          for division in get_divisions()]
@@ -215,9 +217,9 @@ app.layout = html.Div([
 ])
 
 
-#############
-# Interaction
-#############
+#############################################
+# Interaction Between Components / Controller
+#############################################
 
 # Load Seasons in Dropdown
 @app.callback(
